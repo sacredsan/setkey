@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Setkey — Harmonic playlist builder</title>
+<meta name="description" content="Müzik klasörünü analiz et (BPM, ton, Camelot), harmonik playlist oluştur, Rekordbox'a gönder ve USB'ye kopyala. Tamamen tarayıcında çalışır, dosyaların bilgisayarından çıkmaz.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%23d4ff3a'/><circle cx='16' cy='16' r='6' fill='%2308090b'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ════════════ KARŞILAMA ════════════ -->
+<div class="welcome" id="welcome">
+  <div class="box">
+    <div class="topbar">
+      <div class="logo" style="padding:0"><div class="logo-mark"></div><div><b>Setkey</b><small data-i18n="tagline">Harmonik playlist</small></div></div>
+      <div class="lang" role="group" aria-label="Dil / Language"><button data-lang="tr">TR</button><button data-lang="en">EN</button></div>
+    </div>
+    <div>
+      <h1 data-i18n="w_title">Setini Camelot çarkında kur.</h1>
+      <p class="lead" data-i18n="w_lead">Müzik klasörünü seç; her şarkının BPM'i ve tonu bulunur, birbirine uyumlu geçen bir sıra çıkar. Sonucu Rekordbox'a aktarır ya da USB'ye sırasıyla kopyalarsın.</p>
+      <div id="w-actions" class="row wrap">
+        <button class="btn pri big-btn" id="w-pick" data-i18n="w_pick">Müzik klasörümü seç</button>
+        <button class="btn big-btn" id="w-resume" hidden></button>
+      </div>
+      <div class="unsupported" id="w-unsupported" hidden data-i18n-html="w_unsupported">Bu tarayıcı klasör erişimini desteklemiyor. Lütfen bilgisayarda <b>Google Chrome</b> ya da <b>Microsoft Edge</b> kullan.</div>
+      <ol class="steps">
+        <li><span class="no">1</span><span><b data-i18n="s1_t">Müzik klasörünü seç.</b> <span data-i18n="s1">Tarayıcı sadece izin ister; dosyalar bilgisayarından çıkmaz.</span></span></li>
+        <li><span class="no">2</span><span><b data-i18n="s2_t">Analiz et.</b> <span data-i18n="s2">BPM, ton ve enerji senin bilgisayarında, Essentia ile bulunur.</span></span></li>
+        <li><span class="no">3</span><span><b data-i18n="s3_t">Seti kur ve gönder.</b> <span data-i18n="s3">Uyumlu sırayı oluştur; Rekordbox'a aktar ya da USB'ye kopyala.</span></span></li>
+      </ol>
+    </div>
+    <figure class="hero" style="margin:0">
+      <svg class="hero-wheel" id="hero-wheel" viewBox="0 0 200 200" role="img" aria-labelledby="hero-cap"></svg>
+      <figcaption class="hero-caption" id="hero-cap" data-i18n="hero_cap">Örnek set: 8A'dan başlayıp komşu tonlarla ilerliyor.</figcaption>
+    </figure>
+    <div class="privacy" data-i18n-html="w_privacy">Gizlilik: Bu site hiçbir veri toplamaz, hesap ya da çerez kullanmaz. Müzik dosyaların ve analiz sonuçların bilgisayarından çıkmaz; sonuçlar seçtiğin klasördeki <b>djstudio-kutuphane.json</b> dosyasına yazılır. Geri geldiğinde aynı klasörü seçmen yeterli.</div>
+  </div>
+</div>
+
+<aside>
+  <div class="logo home" id="home-logo" role="button" tabindex="0" data-i18n-title="home_tip" title="Karşılama ekranına dön"><div class="logo-mark"></div><div><b>Setkey</b><small data-i18n="tagline">Harmonik playlist</small></div></div>
+  <div class="folder-card">
+    <div class="fn">📁 <span id="root-name">—</span></div>
+    <div class="fs" id="root-stat"></div>
+    <div class="row" style="margin-top:8px;gap:6px">
+      <button class="btn sm" id="root-scan" data-i18n="scan_new" title="">⟳ Yeni şarkıları tara</button>
+      <button class="btn sm ghost" id="root-change" data-i18n="change">Değiştir</button>
+    </div>
+  </div>
+  <nav id="nav">
+    <button data-p="lib"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="nav_lib">Kütüphane</span><span class="badge" id="b-lib" hidden></span></button>
+    <button data-p="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h11M4 12h11M4 18h7M18 8v10m0 0a2 2 0 11-2-2 2 2 0 012 2z"/></svg><span data-i18n="nav_pl">Playlist</span></button>
+    <button data-p="cp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="8" y="3" width="8" height="5" rx="1"/><path d="M6 8h12v10a3 3 0 01-3 3H9a3 3 0 01-3-3z"/></svg><span data-i18n="nav_cp">USB'ye Kopyala</span></button>
+    <button data-p="tools"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span data-i18n="nav_tools">Araçlar</span></button>
+  </nav>
+  <div class="side-foot">
+    <div class="side-links">
+      <div class="lang" role="group" aria-label="Dil / Language"><button data-lang="tr">TR</button><button data-lang="en">EN</button></div>
+      <a href="https://github.com/sacredsan/setkey" id="src-link" target="_blank" rel="noopener" data-i18n="source">Kaynak kodu</a>
+      <a href="#" id="about-link" data-i18n="about">Hakkında</a>
+    </div>
+  </div>
+  <audio id="audio" preload="none"></audio>
+</aside>
+
+<main>
+<!-- ════════════ KÜTÜPHANE ════════════ -->
+<section class="page" id="p-lib">
+  <div class="ph"><div><h1 data-i18n="nav_lib">Kütüphane</h1><p data-i18n="lib_sub">Klasördeki şarkılar analiz edilir: BPM, ton (Camelot) ve enerji. Analiz edilenler bir daha beklemez.</p></div></div>
+  <div class="card">
+    <div class="row wrap" style="gap:12px">
+      <button class="btn pri" id="lib-go" data-i18n="analyze">Analiz et</button>
+      <label class="chk" style="margin-top:0"><input type="checkbox" id="lib-rec" checked> <span data-i18n="subfolders">Alt klasörler dahil</span></label>
+      <label class="chk" style="margin-top:0"><input type="checkbox" id="lib-force"> <span data-i18n="reanalyze_all">Hepsini yeniden analiz et</span></label>
+      <span class="grow"></span>
+      <span class="hint" style="margin:0" id="lib-hint" data-i18n="keep_open">Analiz bu sekmede yapılır; bitene kadar sekmeyi kapatma.</span>
+    </div>
+    <div id="task-analyze"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px" id="rb-card">
+    <h3>Rekordbox <span class="pill" id="rb-status" style="text-transform:none;letter-spacing:0">—</span>
+      <span class="sp row">
+        <button class="btn sm" id="rb-pick" data-i18n="rb_import">XML içe aktar</button>
+        <button class="btn sm" id="rb-calib" hidden data-i18n="rb_calib">Ton ayarını kalibre et</button>
+        <button class="btn sm pri" id="rb-compare" hidden data-i18n="rb_compare">Analizleri karşılaştır</button>
+      </span></h3>
+    <div class="cmp" id="rb-sum" hidden style="margin-bottom:10px"></div>
+    <div class="hint" style="margin-top:-6px" data-i18n-html="rb_help">Rekordbox'ta <b>Dosya → Koleksiyonu xml formatında dışa aktar</b> de ve dosyayı burada içe aktar. Rekordbox'ın BPM ve tonları kullanılabilir, analizlerimizle karşılaştırılabilir.</div>
+    <div class="row wrap" style="gap:18px;margin-top:4px">
+      <label class="chk"><input type="checkbox" id="rb-use" checked> <span data-i18n="rb_use">Kütüphanede Rekordbox değerlerini göster</span></label>
+      <span class="grow"></span>
+      <span style="font-size:12px;color:var(--muted);margin-top:10px" data-i18n="bpm_range" data-i18n-title="bpm_range_tip">BPM aralığım</span>
+      <input type="number" id="pref-lo" placeholder="min" style="width:80px;margin-top:10px">
+      <input type="number" id="pref-hi" placeholder="max" style="width:80px;margin-top:10px">
+      <button class="btn sm" id="pref-save" style="margin-top:10px" data-i18n="apply">Uygula</button>
+    </div>
+    <div id="rb-result"></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="tool">
+      <input type="text" id="lib-search" data-i18n-ph="search_ph" placeholder="Ara: şarkı, sanatçı, klasör…">
+      <select id="lib-cam" style="max-width:130px"></select>
+      <input type="number" id="lib-bmin" placeholder="BPM min" style="max-width:100px">
+      <input type="number" id="lib-bmax" placeholder="BPM max" style="max-width:100px">
+      <label class="chk" style="margin-top:0"><input type="checkbox" id="lib-low"> <span data-i18n="only_suspect">Sadece şüpheliler</span></label>
+      <label class="chk" style="margin-top:0"><input type="checkbox" id="lib-unused"> <span data-i18n="only_unused">Kullanılmamışlar</span></label>
+      <button class="btn sm" id="lib-fixfast" hidden></button>
+      <span class="grow"></span>
+      <span class="pill" id="lib-count"></span>
+    </div>
+    <div class="tool" id="lib-selbar" hidden>
+      <span class="pill"><b id="lib-selc">0</b> <span data-i18n="selected">seçili</span></span>
+      <button class="btn sm" id="lib-add" data-i18n="add_to_pl">Playlist'e ekle</button>
+      <button class="btn sm" id="lib-start" data-i18n="start_with">Bu şarkıyla başla</button>
+      <button class="btn sm" id="lib-half">BPM ½</button>
+      <button class="btn sm" id="lib-double">BPM ×2</button>
+      <button class="btn sm" id="lib-resetbpm" data-i18n="reset_bpm">BPM'i sıfırla</button>
+      <button class="btn sm" id="lib-unuse" data-i18n="unuse">"Kullanıldı" işaretini kaldır</button>
+      <button class="btn sm ghost" id="lib-unsel" data-i18n="unselect">Seçimi kaldır</button>
+    </div>
+    <div class="scroll"><table class="tbl" id="lib-tbl"></table></div>
+    <div class="row" id="lib-more-row" style="justify-content:center;margin-top:10px" hidden><button class="btn sm" id="lib-more"></button></div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end">
+      <button class="btn sm ghost" id="lib-missing" data-i18n="clean_missing">Silinmiş dosyaları temizle</button>
+      <button class="btn sm ghost danger" id="lib-clear" data-i18n="reset_lib">Kütüphaneyi sıfırla</button>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ PLAYLIST ════════════ -->
+<section class="page" id="p-pl">
+  <div class="ph"><div><h1 data-i18n="nav_pl">Playlist</h1><p data-i18n="pl_sub">Harmonik mix için otomatik sıralama. Sonra sürükleyip bırakarak düzenleyebilirsin.</p></div></div>
+  <div class="grid g-side">
+    <div class="card" style="align-self:start">
+      <h3 data-i18n="create">Oluştur</h3>
+      <label class="f" style="margin-top:0" data-i18n="values">Değerler</label>
+      <div class="seg" id="pl-src"><button data-v="ours" class="on" data-i18n="src_ours">Bizim analiz</button><button data-v="rb">Rekordbox</button></div>
+      <div class="hint" id="src-hint"></div>
+      <label class="f" data-i18n="ordering">Sıralama</label>
+      <div class="seg" id="pl-mode"><button data-v="smart" class="on" data-i18n="mode_smart">Akıllı</button><button data-v="locked" data-i18n="mode_locked">BPM kilitli</button></div>
+      <div class="hint" id="mode-hint"></div>
+      <div id="smart-opts">
+        <label class="f" data-i18n="energy_flow">Enerji akışı</label>
+        <select id="pl-shape">
+          <option value="warmup" data-i18n="sh_warmup">Isınma: yavaştan hızlıya</option>
+          <option value="peak" data-i18n="sh_peak">Zirve: yüksel, sonda hafif in</option>
+          <option value="wave" data-i18n="sh_wave">Dalga: in-çık</option>
+          <option value="cooldown" data-i18n="sh_cooldown">Kapanış: hızlıdan yavaşa</option>
+          <option value="flat" data-i18n="sh_flat">Sabit</option>
+        </select>
+        <label class="f" data-i18n="start">Başlangıç</label>
+        <select id="pl-start"><option value="slow" data-i18n="st_slow">En yavaş şarkı</option><option value="mid" data-i18n="st_mid">Orta tempo</option><option value="fast" data-i18n="st_fast">En hızlı şarkı</option></select>
+        <div id="start-pill" hidden style="margin-top:8px"></div>
+      </div>
+      <div id="locked-opts" hidden>
+        <label class="f"><span data-i18n="band_tol">Bant toleransı</span>: <b id="tol-v" class="mono">2</b> BPM</label>
+        <input type="range" id="pl-tol" min="0" max="6" step="0.5" value="2">
+        <label class="chk"><input type="checkbox" id="pl-desc"> <span data-i18n="desc">Yüksekten düşüğe</span></label>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><label class="f">BPM min</label><input type="number" id="pl-bmin" placeholder="—"></div>
+        <div><label class="f">BPM max</label><input type="number" id="pl-bmax" placeholder="—"></div>
+      </div>
+      <label class="f" data-i18n="count">Şarkı sayısı (boş = hepsi)</label><input type="number" id="pl-len" min="2" placeholder="—">
+      <label class="f" data-i18n="only_folder">Sadece bu klasörden</label>
+      <select id="pl-folder"></select>
+      <label class="chk"><input type="checkbox" id="pl-skipused"> <span data-i18n="skip_used">Daha önce kullanılanları alma</span></label>
+      <div class="hint" data-i18n="skip_used_hint">Rekordbox'a gönderdiğin ya da USB'ye kopyaladığın şarkılar "Kullanıldı" olarak işaretlenir.</div>
+      <button class="btn pri" id="pl-build" style="width:100%;margin-top:16px" data-i18n="build">Playlist oluştur</button>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sm grow" id="pl-m3u">M3U</button>
+        <button class="btn sm grow" id="pl-csv">CSV</button>
+        <button class="btn sm grow" id="pl-rb" data-i18n="to_rb">Rekordbox XML</button>
+      </div>
+      <button class="btn sm ghost danger" id="pl-empty" style="width:100%;margin-top:8px" data-i18n="empty_pl">Playlist'i boşalt</button>
+    </div>
+    <div>
+      <div class="pl-head">
+        <input type="text" id="pl-name" value="Yeni Set">
+        <span class="pill" id="pl-srcpill"></span>
+      </div>
+      <div class="pl-stats">
+        <div class="stat score"><svg class="ring" viewBox="0 0 46 46" id="pl-ring"></svg><div><span data-i18n="compat_tr">Uyumlu geçiş</span><b id="pl-score">–</b></div></div>
+        <div class="stat"><span data-i18n="tracks_cap">Parça</span><b id="pl-n">0</b></div>
+        <div class="stat"><span data-i18n="total_time">Toplam süre</span><b id="pl-dur">0:00</b></div>
+        <div class="stat"><span data-i18n="bpm_span">BPM aralığı</span><b id="pl-span">–</b></div>
+      </div>
+      <div class="viz">
+        <div class="card curve"><h3 data-i18n="flow">BPM & enerji akışı</h3><svg id="pl-curve" viewBox="0 0 800 170" preserveAspectRatio="none"></svg></div>
+        <div class="card"><h3 data-i18n="wheel">Camelot çarkı</h3><svg id="pl-wheel" viewBox="0 0 200 200"></svg></div>
+      </div>
+      <div id="pl-list" class="pl-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ KOPYALA ════════════ -->
+<section class="page" id="p-cp">
+  <div class="ph"><div><h1 data-i18n="nav_cp">USB'ye Kopyala</h1><p data-i18n="cp_sub">Playlist sırasıyla kopyalanır (01 - , 02 - …) ve yanına playlist.m3u yazılır.</p></div></div>
+  <div class="grid g2">
+    <div class="card">
+      <h3 data-i18n="target">Hedef</h3>
+      <div class="row"><div class="dest grow" id="cp-dest">—</div><button class="btn" id="cp-pick" data-i18n="choose">Seç</button></div>
+      <div class="hint" data-i18n="cp_pick_hint">USB belleği ya da herhangi bir klasörü seç. Tarayıcı bir kez yazma izni ister.</div>
+      <label class="f" data-i18n="subfolder">Alt klasör adı (boş = doğrudan hedefe)</label>
+      <input type="text" id="cp-sub">
+      <label class="chk"><input type="checkbox" id="cp-num" checked> <span data-i18n="numbered">Dosya adlarının başına sıra numarası ekle</span></label>
+      <label class="chk"><input type="checkbox" id="cp-m3u" checked> <span data-i18n="write_m3u">playlist.m3u dosyası oluştur</span></label>
+      <label class="chk"><input type="checkbox" id="cp-mp3"> <span data-i18n="cp_mp3">WAV'ları MP3'e çevirerek kopyala (320 kbps)</span></label>
+    </div>
+    <div class="card">
+      <h3 data-i18n="summary">Özet</h3>
+      <div class="stats" id="cp-sum"></div>
+      <button class="btn pri" id="cp-go" style="width:100%;margin-top:16px;padding:13px" data-i18n="start_copy">Kopyalamayı başlat</button>
+      <div id="task-copy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ ARAÇLAR ════════════ -->
+<section class="page" id="p-tools">
+  <div class="ph"><div><h1 data-i18n="nav_tools">Araçlar</h1><p data-i18n="tools_sub">Arşiv bakımı. Hiçbir dosya silinmez; kopyalar müzik klasöründeki "_kopyalar" klasörüne taşınır.</p></div></div>
+  <div class="card" style="max-width:860px">
+    <h3 data-i18n="dup_title">Aynı şarkıları bul</h3>
+    <label class="f"><span data-i18n="similarity">Benzerlik eşiği</span>: <b class="mono" id="dup-th-v">85</b>%</label>
+    <input type="range" id="dup-th" min="70" max="98" value="85">
+    <div class="hint" data-i18n="dup_hint">Düşük = daha çok eşleşme. Birebir aynı dosyalar her zaman bulunur.</div>
+    <button class="btn pri" id="dup-go" style="margin-top:12px" data-i18n="scan">Tara</button>
+    <div id="task-dup"></div>
+    <div id="dup-res"></div>
+  </div>
+  <div class="card" style="max-width:860px;margin-top:16px">
+    <h3>WAV → MP3 <span class="pill" id="wav-count" style="text-transform:none;letter-spacing:0">—</span></h3>
+    <div class="hint" data-i18n="wav_hint">Müzik klasöründeki WAV'lar MP3'e çevrilir ve yanına yazılır. WAV dosyaları silinmez. Şarkı adı, sanatçı, BPM ve ton MP3'ün içine yazılır; analiz MP3'e aktarılır, tekrar analiz gerekmez.</div>
+    <div class="row wrap" style="margin-top:10px">
+      <select id="wav-br" style="max-width:200px"><option value="320" data-i18n="br_320">320 kbps (en iyi)</option><option value="256">256 kbps</option><option value="192">192 kbps</option></select>
+      <label class="chk" style="margin-top:0"><input type="checkbox" id="wav-skip" checked> <span data-i18n="wav_skip">MP3'ü zaten olanları atla</span></label>
+    </div>
+    <button class="btn pri" id="wav-go" style="margin-top:12px" data-i18n="convert">Dönüştür</button>
+    <div id="task-wav"></div>
+  </div>
+</section>
+</main>
+<!-- Alt çalar çubuğu (CDJ benzeri CUE / PLAY) -->
+<div class="deck" id="deck" role="region" aria-label="Player">
+  <div class="deck-track"><div class="t" id="pl-t" data-i18n="no_play">Çalan şarkı yok</div><div class="a" id="pl-a" data-i18n="play_hint">Kütüphanede ▶ ile dinle</div></div>
+  <div class="deck-ctl">
+    <button class="deck-btn cue" id="deck-cue" data-i18n-title="cue_tip" title="CUE: işaret noktasına dön">CUE</button>
+    <button class="deck-btn play" id="pl-btn" data-i18n-title="play" title="Çal / duraklat" aria-label="Play / Pause"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg></button>
+  </div>
+  <div class="deck-pos">
+    <span class="tm" id="pl-tm">0:00</span>
+    <div class="pbar" id="pl-bar" role="slider" aria-label="Position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><i id="pl-fill" style="width:0"></i><b id="pl-cuemark" hidden></b></div>
+    <span class="tm" id="deck-len">0:00</span>
+  </div>
+  <div class="deck-meta"><span id="deck-key"></span><span class="deck-bpm" id="deck-bpm"></span></div>
+</div>
+<div id="toasts"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
