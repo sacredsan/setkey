@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Essentia test</title><pre id="o">çalışıyor…</pre>
+<script type="module">
+import { runPool, KEY_PROFILES } from "../js/analyzer.js";
+import { camOfKey } from "../js/camelot.js";
+const o = document.getElementById("o"); const out = {};
+try {
+  const items = [];
+  for (const name of ["test_128_Am.mp3", "test_124_C.mp3"]) {
+    const blob = await (await fetch(name)).blob(); const file = new File([blob], name, { lastModified: 1 });
+    items.push({ id: name, handle: { getFile: async () => file } });
+  }
+  await runPool(items, { mode: "analyze", onResult: async (it, r) => { out[it.id] = { bpm: r.bpm && +r.bpm.toFixed(2), conf: r.bpm_conf, key: r.key + " " + r.scale, cam: camOfKey(r), strength: r.strength, energy: r.energy, raw: r.energy_raw, dur: r.duration, err: r.error }; } });
+  await runPool(items.slice(0, 1), { mode: "calibrate", onResult: async (it, r) => { out.calib = r.error || Object.fromEntries(Object.entries(r.keys || {}).map(([p, k]) => [p, camOfKey(k)])); } });
+  await runPool(items.slice(0, 1), { mode: "analyze", keyStrategy: { type: "vote", profiles: ["edmm", "bgate", "shaath"] }, onResult: async (it, r) => { out.vote = (r.error || camOfKey(r)); } });
+} catch (e) { out.fatal = String(e && e.stack || e); }
+o.textContent = JSON.stringify(out, null, 1); document.title = "DONE";
+</script>
