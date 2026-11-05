@@ -4,7 +4,7 @@
 
 **EN** · Analyze your music folder (BPM, key/Camelot, energy), build harmonic playlists, send them to Rekordbox and copy them to USB in order. **Runs entirely in your browser; your files never leave your computer.**
 
-👉 **https://setkey.pages.dev**
+👉 **https://setkey-dj.pages.dev**
 
 ## Özellikler / Features
 - Essentia.js ile tarayıcıda BPM, ton ve enerji analizi · In-browser BPM/key/energy analysis with Essentia.js
